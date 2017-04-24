@@ -1,0 +1,7 @@
+.idea
+vendor
+main
+.DS_Store
+current.pid
+dump.rdb
+config.json

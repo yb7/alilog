@@ -1,0 +1,9 @@
+package: cailian/wechat-corp-connect
+import:
+- package: github.com/denverdino/aliyungo
+  subpackages:
+  - common
+  - sls
+- package: github.com/golang/protobuf
+  subpackages:
+  - proto
