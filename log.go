@@ -55,8 +55,17 @@ func (l *SLog) Error(err error) {
 func (l *SLog) doLog(level string, format string, v ...interface{}) {
   msg := fmt.Sprintf(format, v...)
   params := make([]string, 0)
+
+  fileParam := l.params["file"]
+  if funcParam, ok := l.params["func"]; ok {
+    fileParam = fmt.Sprintf("%s[%s]", fileParam, funcParam)
+  }
+
+
   for k, v := range l.params {
-    params = append(params, fmt.Sprintf("%s[%s]", k, v))
+    if k != "file" && k != "func" {
+      params = append(params, fmt.Sprintf("%s[%s]", k, v))
+    }
   }
 
   var stdLog *log.Logger
@@ -67,7 +76,7 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
   default:
     stdLog = stdInfo
   }
-  stdLog.Println(msg + " " + strings.Join(params, ", "))
+  stdLog.Println(fmt.Sprintf("%s - %s - %s", fileParam, strings.Join(params, ", "), msg))
   if slsClient != nil {
     contents := map[string]string {
       "level": level,
