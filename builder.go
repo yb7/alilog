@@ -6,33 +6,60 @@ import (
   "fmt"
   "github.com/denverdino/aliyungo/sls"
   "strings"
+  "io/ioutil"
+  "encoding/json"
 )
 
 var slsClient *sls.Client
-func init() {
-  slsRegion, err := getSlsRegionFromEnv()
+
+type SlsConfig struct {
+  AccessKeyID string
+  AccessKeySecret string
+  Region string
+  EndPoint string
+}
+
+
+func readConfig(file string) SlsConfig {
+  data, err := ioutil.ReadFile(file)
   if err != nil {
+    panic(fmt.Errorf("error[%s] when read sls config file: %s", err.Error(), file))
+  }
+  var slsConfig SlsConfig
+  err = json.Unmarshal(data, &slsConfig)
+  if err != nil {
+    panic(fmt.Errorf("error[%s] when unmarshal sls config\n %s", err.Error(), string(data)))
+  }
+  return slsConfig
+}
+func init() {
+  cfgFile := os.Getenv("ALILOG_CONFIG")
+  if len(cfgFile) == 0{
+    stdInfo.Println("missing ALILOG_CONFIG sls start up failed")
     return
   }
-
-  accessKeyId := strings.TrimSpace(os.Getenv("SLS_ACCESSKEY_ID"))
-  if len(accessKeyId) == 0 {
-    return
+  if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+    panic(fmt.Sprintf("sls config file[%s], not exist", cfgFile))
   }
-  accessKeySecret := strFromEnvNotEmpty("SLS_ACCESSKEY_SECRET")
+  slsConfig := readConfig(cfgFile)
+  assertNotEmpty("slsConfig.AccessKeyID", slsConfig.AccessKeyID)
+  assertNotEmpty("slsConfig.AccessKeySecret", slsConfig.AccessKeySecret)
+  assertNotEmpty("slsConfig.Region", slsConfig.Region)
+  slsRegion := assertRegion(slsConfig.Region)
 
-  internalStr := os.Getenv("SLS_INTERNAL")
-  var internal = false
-  if internalStr == "true" {
-    internal = true
-  }
+  slsClient = sls.NewClientWithEndpoint(slsConfig.EndPoint, slsRegion, false,
+    slsConfig.AccessKeyID, slsConfig.AccessKeySecret)
 
-  slsClient = sls.NewClient(slsRegion, internal, accessKeyId, accessKeySecret)
   stdInfo.Println("success create sls client")
 }
 
-func getSlsRegionFromEnv() (reg common.Region, err error) {
-  slsRegion := os.Getenv("SLS_REGION")
+func assertNotEmpty(key, value string) {
+  if len(strings.TrimSpace(value)) == 0 {
+    panic(fmt.Errorf("%s is empty", key))
+  }
+}
+
+func assertRegion(slsRegion string) (reg common.Region) {
   switch slsRegion {
   case "cn-hangzhou": reg = common.Hangzhou
   case "cn-qingdao": reg = common.Qingdao
@@ -53,14 +80,7 @@ func getSlsRegionFromEnv() (reg common.Region, err error) {
 
   case "eu-central-1": reg = common.EUCentral1
   default:
-    err = fmt.Errorf("not a valid aliyun region: [%s]", slsRegion)
+    panic(fmt.Errorf("not a valid aliyun region: [%s]", slsRegion))
   }
   return
-}
-func strFromEnvNotEmpty(key string) string {
-  val := strings.TrimSpace(os.Getenv(key))
-  if len(val) > 0 {
-    return val
-  }
-  panic(fmt.Errorf("key[%s] in env, must not empty", key))
 }

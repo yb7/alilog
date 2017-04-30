@@ -1,0 +1,14 @@
+hash: 6ce1813b554f87346f54381b3c6709848da49d05f4b80a206eb73d52ccc00df4
+updated: 2017-04-30T14:45:20.83364126+08:00
+imports:
+- name: github.com/denverdino/aliyungo
+  version: cac644fbb1c76ee1f86f1466e04a0b0ffae691b6
+  subpackages:
+  - common
+  - sls
+  - util
+- name: github.com/golang/protobuf
+  version: 18c9bb3261723cd5401db4d0c9fbc5c3b6c70fe8
+  subpackages:
+  - proto
+testImports: []

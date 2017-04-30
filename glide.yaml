@@ -1,4 +1,4 @@
-package: cailian/wechat-corp-connect
+package: github.com/wangyibin/alilog
 import:
 - package: github.com/denverdino/aliyungo
   subpackages:

@@ -77,6 +77,8 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
       contents[k] = v
     }
     logChan <- &logDto{
+      Project: l.project,
+      LogStore: l.logStore,
       Time: time.Now(),
       Contents: contents,
     }

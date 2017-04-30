@@ -13,14 +13,17 @@ import (
 var logChan = make(chan *logDto, 1000)
 
 type logDto struct {
-  Time time.Time
+  Project  string
+  LogStore string
+  Time     time.Time
   Contents map[string]string
 }
+
 func (l *logDto) SlsLogContents() []*sls.Log_Content {
   c := make([]*sls.Log_Content, 0)
   for k, v := range l.Contents {
-    c = append(c, &sls.Log_Content {
-      Key: proto.String(k),
+    c = append(c, &sls.Log_Content{
+      Key:   proto.String(k),
       Value: proto.String(v),
     })
   }
@@ -44,7 +47,7 @@ func readLog() {
         writeLogToSls(ip, topic, buf)
         buf = make([]*logDto, 0, BUF_CAP)
       }
-    case msg := <- logChan:
+    case msg := <-logChan:
       buf = append(buf, msg)
       if len(buf) >= BUF_CAP {
         writeLogToSls(ip, topic, buf)
@@ -54,27 +57,43 @@ func readLog() {
   }
 }
 
+type logStoreKey struct {
+  project string
+  logStore string
+}
 func writeLogToSls(ip, topic string, buf []*logDto) {
-  logItems := make([]*sls.Log, 0, len(buf))
-  for _, d := range buf {
-    logItems = append(logItems, &sls.Log {
-      Time: proto.Uint32(uint32(d.Time.Unix())),
-      Contents: d.SlsLogContents(),
+  dividedByLogStore := make(map[logStoreKey][]*sls.Log)
+  for _, dto := range buf {
+    key := logStoreKey{dto.Project, dto.LogStore}
+    logs, ok := dividedByLogStore[key]
+    if !ok {
+      logs = make([]*sls.Log, 0)
+    }
+    logs = append(logs, &sls.Log{
+      Time:     proto.Uint32(uint32(dto.Time.Unix())),
+      Contents: dto.SlsLogContents(),
     })
+    dividedByLogStore[key] = logs
   }
+  for key, value := range dividedByLogStore {
+    writeLogToSlsStore(ip, topic, key.project, key.logStore, value)
+  }
+
+}
+func writeLogToSlsStore(ip, topic, project, logStore string, logItems []*sls.Log) {
   logGroup := sls.LogGroup{
     Source: &ip,
-    Topic: &topic,
-    Logs: logItems,
+    Topic:  &topic,
+    Logs:   logItems,
   }
 
   go func() {
     _debug("write to sls >>>>> \n")
     req := &sls.PutLogsRequest{
-      Project: "wechat-corp-connect",
-      LogStore: "application_log",
+      Project:  project,
+      LogStore: logStore,
       LogItems: logGroup,
-      HashKey: getMD5Hash(ip),
+      HashKey:  getMD5Hash(ip),
     }
     for _, item := range req.LogItems.Logs {
       _debug("log at %s\n", *item.Time)
