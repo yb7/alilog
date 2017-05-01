@@ -76,7 +76,16 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
   default:
     stdLog = stdInfo
   }
-  stdLog.Println(fmt.Sprintf("%s - %s - %s", fileParam, strings.Join(params, ", "), msg))
+
+  msgArr := make([]string, 0, 3)
+  if len(fileParam) > 0 {
+    msgArr = append(msgArr, fileParam)
+  }
+  if len(params) > 0 {
+    msgArr = append(msgArr, strings.Join(params, ", "))
+  }
+  msgArr = append(msgArr, msg)
+  stdLog.Println(strings.Join(msgArr, " - "))
   if slsClient != nil {
     contents := map[string]string {
       "level": level,

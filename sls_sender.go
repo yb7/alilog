@@ -10,7 +10,9 @@ import (
   "github.com/golang/protobuf/proto"
 )
 
-var logChan = make(chan *logDto, 1000)
+const TOTAL_BUF_SIZE = 10000
+const LOG_SENDER_TIMER = time.Second * 1
+var logChan = make(chan *logDto, TOTAL_BUF_SIZE)
 
 type logDto struct {
   Project  string
@@ -34,10 +36,10 @@ func init() {
   go readLog()
 }
 func readLog() {
-  flushTimer := time.NewTimer(time.Second * 3)
+  flushTimer := time.NewTimer(LOG_SENDER_TIMER)
   ip := ipAddr()
   topic := ""
-  const BUF_CAP = 100
+  const BUF_CAP = TOTAL_BUF_SIZE / 10
   var buf = make([]*logDto, 0, BUF_CAP)
   for slsClient != nil {
     select {
