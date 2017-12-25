@@ -1,10 +1,11 @@
 package alilog
 
-import "fmt"
+import (
+	"fmt"
+)
 
-var enableDebug = false
-func _debug(format string, v... interface{}) {
-  if enableDebug {
-    fmt.Printf(format, v...)
-  }
+func _debug(format string, v ...interface{}) {
+	if ALI_INTERNAL_DEBUG {
+		fmt.Printf(format, v...)
+	}
 }
