@@ -1,4 +1,4 @@
-package: github.com/wangyibin/alilog
+package: github.com/yb7/alilog
 import:
 - package: github.com/denverdino/aliyungo
   subpackages:
