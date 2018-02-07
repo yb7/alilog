@@ -12,6 +12,7 @@ var _aliLogLevel = 1
 
 func init() {
 	if os.Getenv("ALI_INTERNAL_DEBUG") == "true" {
+		stdInfo.Println("ALI_INTERNAL_DEBUG enabled")
 		ALI_INTERNAL_DEBUG = true
 	}
 	_aliLogLevel = logLevelNum(os.Getenv("ALI_LOG_LEVEL"))

@@ -51,9 +51,6 @@ func init() {
 		slsConfig.AccessKeyID, slsConfig.AccessKeySecret)
 
 	stdInfo.Println(fmt.Sprintf("success create sls client to %s[region:%s]", slsConfig.EndPoint, slsRegion))
-	if settings.ALI_INTERNAL_DEBUG {
-		stdInfo.Println("ALI_INTERNAL_DEBUG enabled")
-	}
 }
 
 func assertNotEmpty(key, value string) {
