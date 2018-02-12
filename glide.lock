@@ -1,0 +1,22 @@
+hash: 6ac07a6aab5b9cb6503bb9f26dbf2dd199353139f9f9ed42726db01c93ac5a79
+updated: 2018-02-12T13:51:55.408212+08:00
+imports:
+- name: github.com/aliyun/aliyun-log-go-sdk
+  version: 7ad6fe8d439b53b368426435e5f477e97c704123
+- name: github.com/gogo/protobuf
+  version: 73bcffaacdca6dd9e3e8bbec5147f24f29fb2cc4
+  subpackages:
+  - proto
+- name: github.com/golang/glog
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
+- name: github.com/golang/protobuf
+  version: 18c9bb3261723cd5401db4d0c9fbc5c3b6c70fe8
+  subpackages:
+  - proto
+- name: github.com/pierrec/lz4
+  version: ed8d4cc3b461464e69798080a0092bd028910298
+- name: github.com/pierrec/xxHash
+  version: a0006b13c722f7f12368c00a3d3c2ae8a999a0c6
+  subpackages:
+  - xxHash32
+testImports: []
