@@ -1,9 +1,6 @@
 package: github.com/yb7/alilog
 import:
-- package: github.com/denverdino/aliyungo
-  subpackages:
-  - common
-  - sls
 - package: github.com/golang/protobuf
   subpackages:
   - proto
+- package: github.com/aliyun/aliyun-log-go-sdk

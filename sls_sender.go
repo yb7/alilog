@@ -3,11 +3,12 @@ package alilog
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"net"
 	"os"
 	"time"
 
-	"github.com/denverdino/aliyungo/sls"
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -17,16 +18,17 @@ const LOG_SENDER_TIMER = time.Second * 1
 var logChan = make(chan *logDto, TOTAL_BUF_SIZE)
 
 type logDto struct {
-	Project  string
-	LogStore string
-	Time     time.Time
-	Contents map[string]string
+	ProjectName  string
+	LogStoreName string
+	LogStore     *sls.LogStore
+	Time         time.Time
+	Contents     map[string]string
 }
 
-func (l *logDto) SlsLogContents() []*sls.Log_Content {
-	c := make([]*sls.Log_Content, 0)
+func (l *logDto) SlsLogContents() []*sls.LogContent {
+	c := make([]*sls.LogContent, 0)
 	for k, v := range l.Contents {
-		c = append(c, &sls.Log_Content{
+		c = append(c, &sls.LogContent{
 			Key:   proto.String(k),
 			Value: proto.String(v),
 		})
@@ -43,10 +45,10 @@ func readLog() {
 	topic := ""
 	const BUF_CAP = TOTAL_BUF_SIZE / 10
 	var buf = make([]*logDto, 0, BUF_CAP)
-	for slsClient != nil {
+	for {
 		select {
 		case <-flushTimer.C:
-			_debug("time out of flush time, buf.size=%d", len(buf))
+			_debug("time out of flush time, buf.size=%d\n", len(buf))
 			if len(buf) > 0 {
 				writeLogToSls(ip, topic, buf)
 				buf = make([]*logDto, 0, BUF_CAP)
@@ -61,16 +63,17 @@ func readLog() {
 	}
 }
 
-type logStoreKey struct {
-	project  string
-	logStore string
-}
+// type logStoreKey struct {
+// 	project  string
+// 	logStore string
+// }
 
 func writeLogToSls(ip, topic string, buf []*logDto) {
-	dividedByLogStore := make(map[logStoreKey][]*sls.Log)
+	dividedByLogStore := make(map[*sls.LogStore][]*sls.Log)
 	for _, dto := range buf {
-		key := logStoreKey{dto.Project, dto.LogStore}
-		logs, ok := dividedByLogStore[key]
+		// key := logStoreKey{dto.ProjectName, dto.LogStoreName}
+		// dto.LogStore.
+		logs, ok := dividedByLogStore[dto.LogStore]
 		if !ok {
 			logs = make([]*sls.Log, 0)
 		}
@@ -78,15 +81,16 @@ func writeLogToSls(ip, topic string, buf []*logDto) {
 			Time:     proto.Uint32(uint32(dto.Time.Unix())),
 			Contents: dto.SlsLogContents(),
 		})
-		dividedByLogStore[key] = logs
+		dividedByLogStore[dto.LogStore] = logs
 	}
-	for key, value := range dividedByLogStore {
-		writeLogToSlsStore(ip, topic, key.project, key.logStore, value)
+	_debug("divide logs to %s log stores\n", len(dividedByLogStore))
+	for logStore, value := range dividedByLogStore {
+		writeLogToSlsStore(ip, topic, logStore, value)
 	}
 
 }
-func writeLogToSlsStore(ip, topic, project, logStore string, logItems []*sls.Log) {
-	logGroup := sls.LogGroup{
+func writeLogToSlsStore(ip, topic string, logStore *sls.LogStore, logItems []*sls.Log) {
+	logGroup := &sls.LogGroup{
 		Source: &ip,
 		Topic:  &topic,
 		Logs:   logItems,
@@ -94,21 +98,22 @@ func writeLogToSlsStore(ip, topic, project, logStore string, logItems []*sls.Log
 
 	go func() {
 		_debug("write to sls >>>>> \n")
-		req := &sls.PutLogsRequest{
-			Project:  project,
-			LogStore: logStore,
-			LogItems: logGroup,
-			HashKey:  getMD5Hash(ip),
-		}
-		for _, item := range req.LogItems.Logs {
-			_debug("log at %s\n", *item.Time)
-			for _, c := range item.Contents {
-				_debug("    %s -> %s\n", *c.Key, *c.Value)
-			}
-		}
-		err := slsClient.PutLogs(req)
+		err := logStore.PutLogs(logGroup)
+		// req := &sls.PutLogsRequest{
+		// 	Project:  project,
+		// 	LogStore: logStore,
+		// 	LogItems: logGroup,
+		// 	HashKey:  getMD5Hash(ip),
+		// }
+		// for _, item := range req.LogItems.Logs {
+		// 	_debug("log at %s\n", *item.Time)
+		// 	for _, c := range item.Contents {
+		// 		_debug("    %s -> %s\n", *c.Key, *c.Value)
+		// 	}
+		// }
+		// err := slsClient.PutLogs(req)
 		if err != nil {
-			_debug("write to sls >>>>> %s\n", err.Error())
+			fmt.Printf("[SLS] error, write to sls >>>>> %s\n", err.Error())
 		}
 	}()
 }
