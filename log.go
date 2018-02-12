@@ -32,6 +32,7 @@ func New(projectName, logStoreName string) *SLog {
 		logStoreName: logStoreName,
 		project:      logProject,
 	}
+	fmt.Printf("[SLS] create log store to: Project[%s], LogStore[%s], Endpoint[%s]\n", projectName, logStoreName, slsConfig.EndPoint)
 	for retry_times = 0; ; retry_times++ {
 		if retry_times > 5 {
 			return slsLog
@@ -153,6 +154,6 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 			Contents: contents,
 		}
 	} else {
-		_debug("logStore is null, ignore the log")
+		_debug("logStore is null, ignore the log\n")
 	}
 }
