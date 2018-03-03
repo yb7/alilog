@@ -33,10 +33,8 @@ func New(projectName, logStoreName string) *SLog {
 		project:      logProject,
 	}
 	fmt.Printf("[SLS] create log store to: Project[%s], LogStore[%s], Endpoint[%s]\n", projectName, logStoreName, slsConfig.EndPoint)
-	for retry_times = 0; ; retry_times++ {
-		if retry_times > 5 {
-			return slsLog
-		}
+
+  for retry_times = 0; retry_times < 5 && len(slsConfig.EndPoint) > 0; retry_times++ {
 		logstore, err = logProject.GetLogStore(logStoreName)
 		if err != nil {
 			fmt.Printf("GetLogStore fail, retry:%d, err:%v\n", retry_times, err)
