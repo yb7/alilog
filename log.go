@@ -95,7 +95,7 @@ func (l *SLog) Error(err error) error {
 	if err != nil {
 		l.doLog("error", err.Error())
 	}
-  return error
+  return err
 }
 
 func (l *SLog) doLog(level string, format string, v ...interface{}) {
