@@ -87,13 +87,15 @@ func (l *SLog) Warnf(format string, v ...interface{}) {
 	l.doLog("warn", format, v...)
 }
 
-func (l *SLog) Errorf(format string, v ...interface{}) {
+func (l *SLog) Errorf(format string, v ...interface{}) error {
 	l.doLog("error", format, v...)
+  return fmt.Errorf(format, v...)
 }
-func (l *SLog) Error(err error) {
+func (l *SLog) Error(err error) error {
 	if err != nil {
 		l.doLog("error", err.Error())
 	}
+  return error
 }
 
 func (l *SLog) doLog(level string, format string, v ...interface{}) {
