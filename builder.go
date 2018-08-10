@@ -36,7 +36,7 @@ func readConfig(file string) SlsConfig {
 func SetConfig(accessKey, accessSecret, endpoint string) {
   slsConfig.AccessKeyID = accessKey
   slsConfig.AccessKeySecret = accessSecret
-  slsConfig.EndPoint = accessEndPoint
+  slsConfig.EndPoint = endpoint
 }
 func init() {
 	cfgFile := os.Getenv("ALILOG_CONFIG")
