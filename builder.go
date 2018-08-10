@@ -32,9 +32,16 @@ func readConfig(file string) SlsConfig {
 	stdInfo.Println("SLS CONFIG end")
 	return slsConfig
 }
+
+func SetConfig(accessKey, accessSecret, endpoint string) {
+  slsConfig.AccessKeyID = accessKey
+  slsConfig.AccessKeySecret = accessSecret
+  slsConfig.EndPoint = accessEndPoint
+}
 func init() {
 	cfgFile := os.Getenv("ALILOG_CONFIG")
 	if len(cfgFile) == 0 {
+    /*
     accessKey := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_KEY"))
     if len(accessKey) == 0 {
       stdInfo.Println("missing ALILOG_ACCESS_KEY sls start up failed")
@@ -53,8 +60,9 @@ func init() {
     slsConfig.AccessKeyID = accessKey
     slsConfig.AccessKeySecret = accessSecret
     slsConfig.EndPoint = accessEndPoint
+    */
 
-		// stdInfo.Println("missing ALILOG_CONFIG sls start up failed")
+		stdInfo.Println("missing ALILOG_CONFIG sls start up failed")
 		return
 	}
   stdInfo.Println("init througth ALILOG_CONFIG(config file)")
