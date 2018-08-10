@@ -35,13 +35,33 @@ func readConfig(file string) SlsConfig {
 func init() {
 	cfgFile := os.Getenv("ALILOG_CONFIG")
 	if len(cfgFile) == 0 {
-		stdInfo.Println("missing ALILOG_CONFIG sls start up failed")
+    accessKey := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_KEY"))
+    if len(accessKey) == 0 {
+      stdInfo.Println("missing ALILOG_ACCESS_KEY sls start up failed")
+      return
+    }
+    accessSecret := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_SECRET"))
+    if len(accessSecret) == 0 {
+      stdInfo.Println("missing ALILOG_ACCESS_SECRET sls start up failed")
+      return
+    }
+    accessEndPoint := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_ENDPOINT"))
+    if len(accessEndPoint) == 0 {
+      stdInfo.Println("missing ALILOG_ACCESS_ENDPOINT sls start up failed")
+      return
+    }
+    slsConfig.AccessKeyID = accessKey
+    slsConfig.AccessKeySecret = accessSecret
+    slsConfig.EndPoint = accessEndPoint
+
+		// stdInfo.Println("missing ALILOG_CONFIG sls start up failed")
 		return
 	}
+  stdInfo.Println("init througth ALILOG_CONFIG(config file)")
 	if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
 		panic(fmt.Sprintf("sls config file[%s], not exist", cfgFile))
 	}
-	slsConfig := readConfig(cfgFile)
+	slsConfig = readConfig(cfgFile)
 	assertNotEmpty("slsConfig.AccessKeyID", slsConfig.AccessKeyID)
 	assertNotEmpty("slsConfig.AccessKeySecret", slsConfig.AccessKeySecret)
 	assertNotEmpty("slsConfig.EndPoint", slsConfig.EndPoint)
