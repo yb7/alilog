@@ -43,7 +43,11 @@ func init() {
   if _bufCap, err := strconv.Atoi(bufCapStr); err != nil && _bufCap > 0 {
     bufCap = _bufCap
   }
-  logChan = make(chan *logDto, bufCap * 10)
+  chanCap := bufCap*200
+  if _chanCap, err := strconv.Atoi(os.Getenv("ALILOG_LOGCHAN_CAP")); err != nil && _chanCap > bufCap {
+    chanCap = _chanCap
+  }
+  logChan = make(chan *logDto, chanCap)
 	go readLog()
 }
 func readLog() {
