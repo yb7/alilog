@@ -7,15 +7,17 @@ import (
 	"net"
 	"os"
 	"time"
-
+  "strconv"
 	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"github.com/golang/protobuf/proto"
 )
 
-const TOTAL_BUF_SIZE = 10000
+//var TOTAL_BUF_SIZE = 10000
 const LOG_SENDER_TIMER = time.Second * 1
 
-var logChan = make(chan *logDto, TOTAL_BUF_SIZE)
+var bufCap = 100
+
+var logChan chan *logDto
 
 type logDto struct {
 	ProjectName  string
@@ -37,27 +39,36 @@ func (l *logDto) SlsLogContents() []*sls.LogContent {
 }
 
 func init() {
+  var bufCapStr = os.Getenv("ALILOG_BUF_CAP")
+  if _bufCap, err := strconv.Atoi(bufCapStr); err != nil && _bufCap > 0 {
+    bufCap = _bufCap
+  }
+  chanCap := bufCap*200
+  if _chanCap, err := strconv.Atoi(os.Getenv("ALILOG_LOGCHAN_CAP")); err != nil && _chanCap > bufCap {
+    chanCap = _chanCap
+  }
+  logChan = make(chan *logDto, chanCap)
 	go readLog()
 }
 func readLog() {
 	flushTimer := time.NewTicker(LOG_SENDER_TIMER)
 	ip := ipAddr()
 	topic := ""
-	const BUF_CAP = TOTAL_BUF_SIZE / 10
-	var buf = make([]*logDto, 0, BUF_CAP)
+	//const BUF_CAP = TOTAL_BUF_SIZE / 10
+	var buf = make([]*logDto, 0, bufCap)
 	for {
 		select {
 		case <-flushTimer.C:
 			_debug("time out of flush time, buf.size=%d\n", len(buf))
 			if len(buf) > 0 {
 				writeLogToSls(ip, topic, buf)
-				buf = make([]*logDto, 0, BUF_CAP)
+				buf = make([]*logDto, 0, bufCap)
 			}
 		case msg := <-logChan:
 			buf = append(buf, msg)
-			if len(buf) >= BUF_CAP {
+			if len(buf) >= bufCap {
 				writeLogToSls(ip, topic, buf)
-				buf = make([]*logDto, 0, BUF_CAP)
+				buf = make([]*logDto, 0, bufCap)
 			}
 		}
 	}

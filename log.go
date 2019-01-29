@@ -91,6 +91,7 @@ func (l *SLog) Warnf(format string, v ...interface{}) {
 }
 
 func (l *SLog) Errorf(format string, v ...interface{}) error {
+<<<<<<< HEAD
   l.doLog("error", format, v...)
   return fmt.Errorf(format, v...)
 }
@@ -98,6 +99,15 @@ func (l *SLog) Error(err error) error {
   if err != nil {
     l.doLog("error", err.Error())
   }
+=======
+	l.doLog("error", format, v...)
+  return fmt.Errorf(format, v...)
+}
+func (l *SLog) Error(err error) error {
+	if err != nil {
+		l.doLog("error", err.Error())
+	}
+>>>>>>> cf3cb847fc6ea9479fdc8d10525a9353e4821a1d
   return err
 }
 
