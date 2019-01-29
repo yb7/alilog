@@ -4,3 +4,6 @@ import:
   subpackages:
   - proto
 - package: github.com/aliyun/aliyun-log-go-sdk
+  version: 79cf7c59e4d638b53028bae279a63f44872a5442
+- package: golang.org/x/net
+  repo: https://github.com/golang/net.git
