@@ -5,6 +5,9 @@ import (
   "log"
   "strings"
   "time"
+  "sync"
+  "errors"
+  "os"
 
   sls "github.com/aliyun/aliyun-log-go-sdk"
 )
@@ -12,35 +15,53 @@ import (
 type SLog struct {
   projectName  string
   logStoreName string
-  project      *sls.LogProject
-  logStore     *sls.LogStore
+  //project      *sls.LogProject
+  //logStore     *sls.LogStore
   params       map[string]string
 }
+func getLogStore(projectName, logStoreName string) *sls.LogStore {
+  logKey := logStoreKey(projectName, logStoreName)
+  data, ok := logCache.Load(logKey)
+  if !ok {
+    return nil
+  }
+  return data.(*slsLogData).logStore
+}
 
-func New(projectName, logStoreName string) *SLog {
-  logProject := &sls.LogProject{
-    Name:            projectName,
-    Endpoint:        slsConfig.EndPoint,
-    AccessKeyID:     slsConfig.AccessKeyID,
-    AccessKeySecret: slsConfig.AccessKeySecret,
-  }
-  var retry_times int
-  var logstore *sls.LogStore
-  var err error
-  var slsLog = &SLog{
-    projectName:  projectName,
-    logStoreName: logStoreName,
-    project:      logProject,
-  }
-  go func(){
+type slsLogData struct {
+  //once         *sync.Once
+  project      *sls.LogProject
+  logStore     *sls.LogStore
+}
+
+func logStoreKey(projectName, logStoreName string) string {
+  return fmt.Sprintf("%s-%s", projectName, logStoreName)
+}
+
+var logCache sync.Map
+
+//var mutex = &sync.Mutex{}
+
+func initSlsLogData(projectName, logStoreName string) {
+  logKey := logStoreKey(projectName, logStoreName)
+  //const MaxRetry = 5
+  doOnce(logKey, func() error {
+    logProject := &sls.LogProject{
+      Name:            projectName,
+      Endpoint:        slsConfig.EndPoint,
+      AccessKeyID:     slsConfig.AccessKeyID,
+      AccessKeySecret: slsConfig.AccessKeySecret,
+    }
+
     fmt.Printf("[SLS] create log store to: Project[%s], LogStore[%s], Endpoint[%s]\n", projectName, logStoreName, slsConfig.EndPoint)
 
-    for retry_times = 0; retry_times < 5 && len(slsConfig.EndPoint) > 0; retry_times++ {
-      logstore, err = logProject.GetLogStore(logStoreName)
+    //var retry_times int
+    for retry_times := 0; retry_times < 5 && len(slsConfig.EndPoint) > 0; retry_times++ {
+      logstore, err := logProject.GetLogStore(logStoreName)
       if err != nil {
         fmt.Printf("GetLogStore fail, retry:%d, err:%v\n", retry_times, err)
         if strings.Contains(err.Error(), sls.PROJECT_NOT_EXIST) {
-          return
+          return err
         } else if strings.Contains(err.Error(), sls.LOGSTORE_NOT_EXIST) {
           err = logProject.CreateLogStore(logStoreName, 30, 2, true, 100)
           if err != nil {
@@ -50,13 +71,26 @@ func New(projectName, logStoreName string) *SLog {
           }
         }
       } else {
-        fmt.Printf("GetLogStore success, retry:%d, name: %s, ttl: %d, shardCount: %d, createTime: %d, lastModifyTime: %d\n", retry_times, logstore.Name, logstore.TTL, logstore.ShardCount, logstore.CreateTime, logstore.LastModifyTime)
-        break
+        fmt.Printf("GetLogStore success, retry:%d, name: %s, ttl: %d, shardCount: %d, createTime: %d, lastModifyTime: %d\n",
+          retry_times, logstore.Name, logstore.TTL, logstore.ShardCount, logstore.CreateTime, logstore.LastModifyTime)
+        logCache.Store(logKey, &slsLogData{
+          logProject, logstore,
+        })
+        return nil
       }
       time.Sleep(200 * time.Millisecond)
     }
-    slsLog.logStore = logstore
-  }()
+    return errors.New("[SLS] exceed max retry, create log store failed")
+    //slsLog.logStore = logstore
+  })
+}
+
+func New(projectName, logStoreName string) *SLog {
+  slsLog := &SLog{
+    projectName:  projectName,
+    logStoreName: logStoreName,
+  }
+  go initSlsLogData(projectName, logStoreName)
 
   return slsLog
   // return &SLog{
@@ -73,8 +107,8 @@ func (l *SLog) With(k, v string) *SLog {
   return &SLog{
     projectName:  l.projectName,
     logStoreName: l.logStoreName,
-    project:      l.project,
-    logStore:     l.logStore,
+    //project:      l.project,
+    //logStore:     l.logStore,
     params:       params,
   }
 }
@@ -140,7 +174,7 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
   }
   msgArr = append(msgArr, msg)
   stdLog.Println(strings.Join(msgArr, " - "))
-  if l.logStore != nil {
+  if len(strings.TrimSpace(os.Getenv("ALILOG_CONFIG"))) > 0 {
     contents := map[string]string{
       "level":   level,
       "message": msg,
@@ -152,7 +186,7 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
       ProjectName:  l.projectName,
       LogStoreName: l.logStoreName,
       // Project:  l.project,
-      LogStore: l.logStore,
+      //LogStore: l.logStore,
       Time:     time.Now(),
       Contents: contents,
     }

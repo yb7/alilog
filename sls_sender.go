@@ -22,7 +22,7 @@ var logChan chan *logDto
 type logDto struct {
 	ProjectName  string
 	LogStoreName string
-	LogStore     *sls.LogStore
+	//LogStore     *sls.LogStore
 	Time         time.Time
 	Contents     map[string]string
 }
@@ -84,7 +84,11 @@ func writeLogToSls(ip, topic string, buf []*logDto) {
 	for _, dto := range buf {
 		// key := logStoreKey{dto.ProjectName, dto.LogStoreName}
 		// dto.LogStore.
-		logs, ok := dividedByLogStore[dto.LogStore]
+		logStore := getLogStore(dto.ProjectName, dto.LogStoreName)
+		if logStore == nil {
+		  continue
+    }
+		logs, ok := dividedByLogStore[logStore]
 		if !ok {
 			logs = make([]*sls.Log, 0)
 		}
@@ -92,7 +96,7 @@ func writeLogToSls(ip, topic string, buf []*logDto) {
 			Time:     proto.Uint32(uint32(dto.Time.Unix())),
 			Contents: dto.SlsLogContents(),
 		})
-		dividedByLogStore[dto.LogStore] = logs
+		dividedByLogStore[logStore] = logs
 	}
 	_debug("divide logs to %s log stores\n", len(dividedByLogStore))
 	for logStore, value := range dividedByLogStore {
