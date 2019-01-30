@@ -42,7 +42,7 @@ func New(projectName, logStoreName string) *SLog {
         if strings.Contains(err.Error(), sls.PROJECT_NOT_EXIST) {
           return
         } else if strings.Contains(err.Error(), sls.LOGSTORE_NOT_EXIST) {
-          err = logProject.CreateLogStore(logStoreName, 1, 2)
+          err = logProject.CreateLogStore(logStoreName, 30, 2, true, 100)
           if err != nil {
             fmt.Printf("CreateLogStore fail, err: %s\n", err.Error())
           } else {
