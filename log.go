@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -139,14 +138,7 @@ func (l *SLog) Error(err error) error {
 	return err
 }
 
-//func caller() string {
-//  pc, _, _, _ := runtime.Caller(1)
-//  return runtime.FuncForPC(pc).Name()
-//}
-//func printCallerName() string {
-//  pc, _, _, _ := runtime.Caller(2)
-//  return runtime.FuncForPC(pc).Name()
-//}
+
 func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	if ShouldLog(level) == false {
 		return
@@ -160,9 +152,6 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 
 	var lineNumber = ""
 
-	if l.params == nil {
-		l.params = make(map[string]string)
-	}
 
 	if !fileNameExisted || !funcNameExisted {
 		pc, file, line, ok := runtime.Caller(2)
@@ -173,22 +162,20 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 				if len(arr) > 1 {
 					fileName = fmt.Sprintf("%s/%s", arr[len(arr)-2], fileName)
 				}
-				l.params["file"] = fileName
 			}
 			if !funcNameExisted {
 				funcName = runtime.FuncForPC(pc).Name()
-				l.params["func"] = funcName
+				firstDot := strings.Index(funcName, ".")
+				if firstDot > -1 {
+				  funcName = funcName[firstDot+1:]
+        }
 			}
 			lineNumber = fmt.Sprintf(":%d", line)
-			l.params["line"] = strconv.Itoa(line)
 		}
 	}
 
 	fileParam := fmt.Sprintf("%s[%s%s]", fileName, funcName, lineNumber)
 
-	//if funcParam, ok := l.params["func"]; ok {
-	//  fileParam = fmt.Sprintf("%s[%s]", fileParam, funcParam)
-	//}
 
 	for k, v := range l.params {
 		if k != "file" && k != "func" && k != "line" {
@@ -209,15 +196,13 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	}
 
 	msgArr := make([]string, 0, 3)
-	if len(fileParam) > 0 {
-		msgArr = append(msgArr, fileParam)
-	}
+  msgArr = append(msgArr, fileParam)
 	if len(params) > 0 {
 		msgArr = append(msgArr, strings.Join(params, ", "))
 	}
 	msgArr = append(msgArr, msg)
 	stdLog.Println(strings.Join(msgArr, " - "))
-	if len(strings.TrimSpace(os.Getenv("ALILOG_CONFIG"))) > 0 {
+	if len(strings.TrimSpace(os.Getenv("ALILOG_CONFIG"))) > 0 && len(l.projectName) > 0 && len(l.logStoreName) > 0 {
 		contents := map[string]string{
 			"level":   level,
 			"message": msg,
@@ -225,11 +210,18 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 		for k, v := range l.params {
 			contents[k] = v
 		}
+		if _, ok := contents["file"]; !ok {
+      contents["file"] = fileName
+    }
+    if _, ok := contents["func"]; !ok {
+      contents["func"] = funcName
+    }
+    if _, ok := contents["lineNumber"]; !ok {
+      contents["lineNumber"] = lineNumber
+    }
 		logChan <- &logDto{
 			ProjectName:  l.projectName,
 			LogStoreName: l.logStoreName,
-			// Project:  l.project,
-			//LogStore: l.logStore,
 			Time:     time.Now(),
 			Contents: contents,
 		}
