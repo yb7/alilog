@@ -11,6 +11,9 @@ var defaultLogStore string
 func init() {
   defaultProjectName = os.Getenv("ALILOG_PROJECT_NAME")
   defaultLogStore = os.Getenv("ALILOG_LOG_STORE")
+  if len(defaultProjectName) == 0 || len(defaultLogStore) == 0{
+    fmt.Printf("ALILOG_PROJECT_NAME / ALILOG_LOG_STORE shouldn't be empty, when use default logger")
+  }
 }
 
 func defaultLogger() *SLog {
