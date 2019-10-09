@@ -48,3 +48,7 @@ func Error(err error) error {
 	}
 	return err
 }
+func Fatalf(format string, v ...interface{}) {
+  defaultLogger().doLog("error", format, v...)
+  os.Exit(1)
+}
