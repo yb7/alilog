@@ -137,6 +137,10 @@ func (l *SLog) Error(err error) error {
 	}
 	return err
 }
+func (l *SLog) Fatal(err error) {
+  l.Error(err)
+  os.Exit(1)
+}
 func (l *SLog) Fatalf(format string, v ...interface{}) {
   l.doLog("error", format, v...)
   os.Exit(1)
