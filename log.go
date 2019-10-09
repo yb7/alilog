@@ -115,6 +115,9 @@ func (l *SLog) With(k, v string) *SLog {
 		params: params,
 	}
 }
+func (l *SLog) Tracef(format string, v ...interface{}) {
+  l.doLog("trace", format, v...)
+}
 func (l *SLog) Debugf(format string, v ...interface{}) {
 	l.doLog("debug", format, v...)
 }
@@ -193,14 +196,18 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 
 	var stdLog *log.Logger
 	switch level {
+  case "trace":
+    stdLog = stdTrace
 	case "debug":
 		stdLog = stdDebug
+  case "info":
+    stdLog = stdInfo
 	case "warn":
 		stdLog = stdWarning
 	case "error":
 		stdLog = stdError
 	default:
-		stdLog = stdInfo
+		stdLog = stdDebug
 	}
 
 	msgArr := make([]string, 0, 3)

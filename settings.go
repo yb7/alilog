@@ -23,6 +23,10 @@ func ShouldLog(level string) bool {
 }
 func logLevelNum(level string) int {
 	switch strings.ToUpper(level) {
+  case "TRACE":
+    return 0
+  case "DEBUG":
+    return 1
 	case "INFO":
 		return 2
 	case "WARN":

@@ -26,6 +26,9 @@ func defaultLogger() *SLog {
 func LogWith(k, v string) *SLog {
 	return defaultLogger().With(k, v)
 }
+func Tracef(format string, v ...interface{}) {
+  defaultLogger().doLog("trace", format, v...)
+}
 func Debugf(format string, v ...interface{}) {
   defaultLogger().doLog("debug", format, v...)
 }
