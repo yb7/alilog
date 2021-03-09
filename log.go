@@ -176,9 +176,16 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 			}
 			if !funcNameExisted {
 				funcName = runtime.FuncForPC(pc).Name()
-				firstDot := strings.Index(funcName, ".")
-				if firstDot > -1 {
-				  funcName = funcName[firstDot+1:]
+        firstSlash := strings.LastIndex(funcName, "/")
+        if firstSlash > -1 {
+          funcName = funcName[firstSlash+1:]
+        }
+        if strings.Index(funcName, ".") > -1 {
+          fileNameFirstPart := strings.Split(fileName, "/")[0]
+          funcNameFirstPart := funcName[0:strings.Index(funcName, ".")]
+          if fileNameFirstPart == funcNameFirstPart {
+            funcName = funcName[strings.Index(funcName, ".")+1:]
+          }
         }
 			}
 			lineNumber = fmt.Sprintf(":%d", line)
