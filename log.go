@@ -116,7 +116,7 @@ func (l *SLog) With(k, v string) *SLog {
 	}
 }
 func (l *SLog) Tracef(format string, v ...interface{}) {
-  l.doLog("trace", format, v...)
+	l.doLog("trace", format, v...)
 }
 func (l *SLog) Debugf(format string, v ...interface{}) {
 	l.doLog("debug", format, v...)
@@ -141,14 +141,13 @@ func (l *SLog) Error(err error) error {
 	return err
 }
 func (l *SLog) Fatal(err error) {
-  l.Error(err)
-  os.Exit(1)
+	l.Error(err)
+	os.Exit(1)
 }
 func (l *SLog) Fatalf(format string, v ...interface{}) {
-  l.doLog("error", format, v...)
-  os.Exit(1)
+	l.doLog("error", format, v...)
+	os.Exit(1)
 }
-
 
 func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	if ShouldLog(level) == false {
@@ -163,7 +162,6 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 
 	var lineNumber = ""
 
-
 	if !fileNameExisted || !funcNameExisted {
 		pc, file, line, ok := runtime.Caller(2)
 		if ok {
@@ -176,24 +174,23 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 			}
 			if !funcNameExisted {
 				funcName = runtime.FuncForPC(pc).Name()
-        firstSlash := strings.LastIndex(funcName, "/")
-        if firstSlash > -1 {
-          funcName = funcName[firstSlash+1:]
-        }
-        if strings.Index(funcName, ".") > -1 {
-          fileNameFirstPart := strings.Split(fileName, "/")[0]
-          funcNameFirstPart := funcName[0:strings.Index(funcName, ".")]
-          if fileNameFirstPart == funcNameFirstPart {
-            funcName = funcName[strings.Index(funcName, ".")+1:]
-          }
-        }
+				firstSlash := strings.LastIndex(funcName, "/")
+				if firstSlash > -1 {
+					funcName = funcName[firstSlash+1:]
+				}
+				if strings.Index(funcName, ".") > -1 {
+					fileNameFirstPart := strings.Split(fileName, "/")[0]
+					funcNameFirstPart := funcName[0:strings.Index(funcName, ".")]
+					if fileNameFirstPart == funcNameFirstPart {
+						funcName = funcName[strings.Index(funcName, ".")+1:]
+					}
+				}
 			}
 			lineNumber = fmt.Sprintf(":%d", line)
 		}
 	}
 
-	fileParam := fmt.Sprintf("%s[%s%s]", fileName, funcName, lineNumber)
-
+	fileParam := fmt.Sprintf("%s%s[%s]", fileName, lineNumber, funcName)
 
 	for k, v := range l.params {
 		if k != "file" && k != "func" && k != "line" {
@@ -203,12 +200,12 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 
 	var stdLog *log.Logger
 	switch level {
-  case "trace":
-    stdLog = stdTrace
+	case "trace":
+		stdLog = stdTrace
 	case "debug":
 		stdLog = stdDebug
-  case "info":
-    stdLog = stdInfo
+	case "info":
+		stdLog = stdInfo
 	case "warn":
 		stdLog = stdWarning
 	case "error":
@@ -218,7 +215,7 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	}
 
 	msgArr := make([]string, 0, 3)
-  msgArr = append(msgArr, fileParam)
+	msgArr = append(msgArr, fileParam)
 	if len(params) > 0 {
 		msgArr = append(msgArr, strings.Join(params, ", "))
 	}
@@ -233,19 +230,19 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 			contents[k] = v
 		}
 		if _, ok := contents["file"]; !ok {
-      contents["file"] = fileName
-    }
-    if _, ok := contents["func"]; !ok {
-      contents["func"] = funcName
-    }
-    if _, ok := contents["lineNumber"]; !ok {
-      contents["lineNumber"] = lineNumber
-    }
+			contents["file"] = fileName
+		}
+		if _, ok := contents["func"]; !ok {
+			contents["func"] = funcName
+		}
+		if _, ok := contents["lineNumber"]; !ok {
+			contents["lineNumber"] = lineNumber
+		}
 		logChan <- &logDto{
 			ProjectName:  l.projectName,
 			LogStoreName: l.logStoreName,
-			Time:     time.Now(),
-			Contents: contents,
+			Time:         time.Now(),
+			Contents:     contents,
 		}
 	} else {
 		_debug("logStore is null, ignore the log\n")
