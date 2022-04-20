@@ -1,8 +1,8 @@
 package alilog
 
 import (
-  "os"
-  "log"
+	"log"
+	"os"
 )
 
 var stdTrace = log.New(os.Stdout, "TRACE: ", log.Ldate|log.Ltime)

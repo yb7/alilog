@@ -163,7 +163,8 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	var lineNumber = ""
 
 	if !fileNameExisted || !funcNameExisted {
-		pc, file, line, ok := runtime.Caller(2)
+		// pc, file, line, ok := runtime.Caller(2)
+		_, file, line, ok := runtime.Caller(2)
 		if ok {
 			if !fileNameExisted {
 				arr := strings.Split(filepath.ToSlash(file), "/")
@@ -172,25 +173,27 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 					fileName = fmt.Sprintf("%s/%s", arr[len(arr)-2], fileName)
 				}
 			}
-			if !funcNameExisted {
-				funcName = runtime.FuncForPC(pc).Name()
-				firstSlash := strings.LastIndex(funcName, "/")
-				if firstSlash > -1 {
-					funcName = funcName[firstSlash+1:]
-				}
-				if strings.Index(funcName, ".") > -1 {
-					fileNameFirstPart := strings.Split(fileName, "/")[0]
-					funcNameFirstPart := funcName[0:strings.Index(funcName, ".")]
-					if fileNameFirstPart == funcNameFirstPart {
-						funcName = funcName[strings.Index(funcName, ".")+1:]
-					}
-				}
-			}
+			// if !funcNameExisted {
+			// 	funcName = runtime.FuncForPC(pc).Name()
+			// 	firstSlash := strings.LastIndex(funcName, "/")
+			// 	if firstSlash > -1 {
+			// 		funcName = funcName[firstSlash+1:]
+			// 	}
+			// 	if strings.Index(funcName, ".") > -1 {
+			// 		fileNameFirstPart := strings.Split(fileName, "/")[0]
+			// 		funcNameFirstPart := funcName[0:strings.Index(funcName, ".")]
+			// 		if fileNameFirstPart == funcNameFirstPart {
+			// 			funcName = funcName[strings.Index(funcName, ".")+1:]
+			// 		}
+			// 	}
+			// }
 			lineNumber = fmt.Sprintf(":%d", line)
 		}
 	}
 
-	fileParam := fmt.Sprintf("%s%s[%s]", fileName, lineNumber, funcName)
+	// fileParam := fmt.Sprintf("%s%s[%s]", fileName, lineNumber, funcName)
+
+	fileParam := fmt.Sprintf("%s%s", fileName, lineNumber)
 
 	for k, v := range l.params {
 		if k != "file" && k != "func" && k != "line" {
