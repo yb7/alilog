@@ -2,8 +2,6 @@ package alilog
 
 import (
 	"github.com/aliyun/aliyun-log-go-sdk/producer"
-	"os"
-	"os/signal"
 )
 
 var producerInstance *producer.Producer
@@ -18,8 +16,6 @@ func StartSlsLog() {
 	producerConfig.AccessKeyID = slsConfig.AccessKeyID
 	producerConfig.AccessKeySecret = slsConfig.AccessKeySecret
 	producerInstance = producer.InitProducer(producerConfig)
-	ch := make(chan os.Signal)
-	signal.Notify(ch, os.Kill, os.Interrupt)
 	producerInstance.Start()
 }
 
