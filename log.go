@@ -1,105 +1,100 @@
 package alilog
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
-
-	sls "github.com/aliyun/aliyun-log-go-sdk"
 )
 
 type SLog struct {
 	projectName  string
 	logStoreName string
+	ip           string
 	//project      *sls.LogProject
 	//logStore     *sls.LogStore
 	params map[string]string
 }
 
-func getLogStore(projectName, logStoreName string) *sls.LogStore {
-	logKey := logStoreKey(projectName, logStoreName)
-	data, ok := logCache.Load(logKey)
-	if !ok {
-		return nil
-	}
-	return data.(*slsLogData).logStore
-}
+//func getLogStore(projectName, logStoreName string) *sls.LogStore {
+//	logKey := logStoreKey(projectName, logStoreName)
+//	data, ok := logCache.Load(logKey)
+//	if !ok {
+//		return nil
+//	}
+//	return data.(*slsLogData).logStore
+//}
 
-type slsLogData struct {
-	//once         *sync.Once
-	project  *sls.LogProject
-	logStore *sls.LogStore
-}
+//type slsLogData struct {
+//	//once         *sync.Once
+//	project  *sls.LogProject
+//	logStore *sls.LogStore
+//}
+//
+//func logStoreKey(projectName, logStoreName string) string {
+//	return fmt.Sprintf("%s-%s", projectName, logStoreName)
+//}
 
-func logStoreKey(projectName, logStoreName string) string {
-	return fmt.Sprintf("%s-%s", projectName, logStoreName)
-}
-
-var logCache sync.Map
+//var logCache sync.Map
 
 //var mutex = &sync.Mutex{}
 
-func initSlsLogData(projectName, logStoreName string) {
-	logKey := logStoreKey(projectName, logStoreName)
-	//const MaxRetry = 5
-	doOnce(logKey, func() error {
-		logProject := &sls.LogProject{
-			Name:            projectName,
-			Endpoint:        slsConfig.EndPoint,
-			AccessKeyID:     slsConfig.AccessKeyID,
-			AccessKeySecret: slsConfig.AccessKeySecret,
-		}
-
-		fmt.Printf("[SLS] create log store to: Project[%s], LogStore[%s], Endpoint[%s]\n", projectName, logStoreName, slsConfig.EndPoint)
-
-		//var retry_times int
-		for retry_times := 0; retry_times < 5 && len(slsConfig.EndPoint) > 0; retry_times++ {
-			logstore, err := logProject.GetLogStore(logStoreName)
-			if err != nil {
-				fmt.Printf("GetLogStore fail, retry:%d, err:%v\n", retry_times, err)
-				if strings.Contains(err.Error(), sls.PROJECT_NOT_EXIST) {
-					return err
-				} else if strings.Contains(err.Error(), sls.LOGSTORE_NOT_EXIST) {
-					err = logProject.CreateLogStore(logStoreName, 30, 2, true, 100)
-					if err != nil {
-						fmt.Printf("CreateLogStore fail, err: %s\n", err.Error())
-					} else {
-						fmt.Println("CreateLogStore success")
-					}
-				}
-			} else {
-				fmt.Printf("GetLogStore success, retry:%d, name: %s, ttl: %d, shardCount: %d, createTime: %d, lastModifyTime: %d\n",
-					retry_times, logstore.Name, logstore.TTL, logstore.ShardCount, logstore.CreateTime, logstore.LastModifyTime)
-				logCache.Store(logKey, &slsLogData{
-					logProject, logstore,
-				})
-				return nil
-			}
-			time.Sleep(200 * time.Millisecond)
-		}
-		return errors.New("[SLS] exceed max retry, create log store failed")
-		//slsLog.logStore = logstore
-	})
-}
+//func initSlsLogData(projectName, logStoreName string) {
+//	logKey := logStoreKey(projectName, logStoreName)
+//	//const MaxRetry = 5
+//	doOnce(logKey, func() error {
+//		logProject := &sls.LogProject{
+//			Name:            projectName,
+//			Endpoint:        slsConfig.EndPoint,
+//			AccessKeyID:     slsConfig.AccessKeyID,
+//			AccessKeySecret: slsConfig.AccessKeySecret,
+//		}
+//
+//		fmt.Printf("[SLS] create log store to: Project[%s], LogStore[%s], Endpoint[%s]\n", projectName, logStoreName, slsConfig.EndPoint)
+//
+//		//var retry_times int
+//		for retry_times := 0; retry_times < 5 && len(slsConfig.EndPoint) > 0; retry_times++ {
+//			logstore, err := logProject.GetLogStore(logStoreName)
+//			if err != nil {
+//				fmt.Printf("GetLogStore fail, retry:%d, err:%v\n", retry_times, err)
+//				if strings.Contains(err.Error(), sls.PROJECT_NOT_EXIST) {
+//					return err
+//				} else if strings.Contains(err.Error(), sls.LOGSTORE_NOT_EXIST) {
+//					err = logProject.CreateLogStore(logStoreName, 30, 2, true, 100)
+//					if err != nil {
+//						fmt.Printf("CreateLogStore fail, err: %s\n", err.Error())
+//					} else {
+//						fmt.Println("CreateLogStore success")
+//					}
+//				}
+//			} else {
+//				fmt.Printf("GetLogStore success, retry:%d, name: %s, ttl: %d, shardCount: %d, createTime: %d, lastModifyTime: %d\n",
+//					retry_times, logstore.Name, logstore.TTL, logstore.ShardCount, logstore.CreateTime, logstore.LastModifyTime)
+//				logCache.Store(logKey, &slsLogData{
+//					logProject, logstore,
+//				})
+//				return nil
+//			}
+//			time.Sleep(200 * time.Millisecond)
+//		}
+//		return errors.New("[SLS] exceed max retry, create log store failed")
+//		//slsLog.logStore = logstore
+//	})
+//}
 
 func New(projectName, logStoreName string) *SLog {
 	slsLog := &SLog{
 		projectName:  projectName,
 		logStoreName: logStoreName,
+		ip:           ipAddr(),
+		params:       make(map[string]string),
 	}
-	go initSlsLogData(projectName, logStoreName)
+	//go initSlsLogData(projectName, logStoreName)
 
 	return slsLog
-	// return &SLog{
-	// 	project:  project,
-	// 	logStore: logStore,
-	// }
 }
 func (l *SLog) With(k, v string) *SLog {
 	params := make(map[string]string)
@@ -110,6 +105,7 @@ func (l *SLog) With(k, v string) *SLog {
 	return &SLog{
 		projectName:  l.projectName,
 		logStoreName: l.logStoreName,
+		ip:           l.ip,
 		//project:      l.project,
 		//logStore:     l.logStore,
 		params: params,
@@ -241,12 +237,20 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 		if _, ok := contents["lineNumber"]; !ok {
 			contents["lineNumber"] = lineNumber
 		}
-		logChan <- &logDto{
+		ip := ipAddr()
+		topic := ""
+		writeLogToSls(ip, topic, &logDto{
 			ProjectName:  l.projectName,
 			LogStoreName: l.logStoreName,
 			Time:         time.Now(),
 			Contents:     contents,
-		}
+		})
+		//logChan <- &logDto{
+		//	ProjectName:  l.projectName,
+		//	LogStoreName: l.logStoreName,
+		//	Time:         time.Now(),
+		//	Contents:     contents,
+		//}
 	} else {
 		_debug("logStore is null, ignore the log\n")
 	}
