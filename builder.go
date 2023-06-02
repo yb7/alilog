@@ -3,12 +3,11 @@ package alilog
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 )
 
-var slsConfig SlsConfig
+var slsConfig = &SlsConfig{}
 
 type SlsConfig struct {
 	AccessKeyID     string
@@ -17,13 +16,13 @@ type SlsConfig struct {
 	EndPoint string
 }
 
-func readConfig(file string) SlsConfig {
-	data, err := ioutil.ReadFile(file)
+func readConfig(file string) *SlsConfig {
+	data, err := os.ReadFile(file)
 	if err != nil {
 		panic(fmt.Errorf("error[%s] when read sls config file: %s", err.Error(), file))
 	}
 	// var slsConfig SlsConfig
-	err = json.Unmarshal(data, &slsConfig)
+	err = json.Unmarshal(data, slsConfig)
 	if err != nil {
 		panic(fmt.Errorf("error[%s] when unmarshal sls config\n %s", err.Error(), string(data)))
 	}
@@ -34,42 +33,42 @@ func readConfig(file string) SlsConfig {
 }
 
 func SetConfig(accessKey, accessSecret, endpoint string) {
-  slsConfig.AccessKeyID = accessKey
-  slsConfig.AccessKeySecret = accessSecret
-  slsConfig.EndPoint = endpoint
+	slsConfig.AccessKeyID = accessKey
+	slsConfig.AccessKeySecret = accessSecret
+	slsConfig.EndPoint = endpoint
 }
-func init() {
-	cfgFile := os.Getenv("ALILOG_CONFIG")
+func InitFromConfigFile(cfgFile string) {
+	//cfgFile := os.Getenv("ALILOG_CONFIG")
 	if len(cfgFile) == 0 {
-    /*
-    accessKey := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_KEY"))
-    if len(accessKey) == 0 {
-      stdInfo.Println("missing ALILOG_ACCESS_KEY sls start up failed")
-      return
-    }
-    accessSecret := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_SECRET"))
-    if len(accessSecret) == 0 {
-      stdInfo.Println("missing ALILOG_ACCESS_SECRET sls start up failed")
-      return
-    }
-    accessEndPoint := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_ENDPOINT"))
-    if len(accessEndPoint) == 0 {
-      stdInfo.Println("missing ALILOG_ACCESS_ENDPOINT sls start up failed")
-      return
-    }
-    slsConfig.AccessKeyID = accessKey
-    slsConfig.AccessKeySecret = accessSecret
-    slsConfig.EndPoint = accessEndPoint
-    */
+		/*
+		   accessKey := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_KEY"))
+		   if len(accessKey) == 0 {
+		     stdInfo.Println("missing ALILOG_ACCESS_KEY sls start up failed")
+		     return
+		   }
+		   accessSecret := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_SECRET"))
+		   if len(accessSecret) == 0 {
+		     stdInfo.Println("missing ALILOG_ACCESS_SECRET sls start up failed")
+		     return
+		   }
+		   accessEndPoint := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_ENDPOINT"))
+		   if len(accessEndPoint) == 0 {
+		     stdInfo.Println("missing ALILOG_ACCESS_ENDPOINT sls start up failed")
+		     return
+		   }
+		   slsConfig.AccessKeyID = accessKey
+		   slsConfig.AccessKeySecret = accessSecret
+		   slsConfig.EndPoint = accessEndPoint
+		*/
 
-		stdInfo.Println("missing ALILOG_CONFIG sls start up failed")
+		stdInfo.Println("missing sls start up config file")
 		return
 	}
-  stdInfo.Println("init througth ALILOG_CONFIG(config file)")
+	stdInfo.Println("init througth ALILOG_CONFIG(config file)")
 	if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
 		panic(fmt.Sprintf("sls config file[%s], not exist", cfgFile))
 	}
-	slsConfig = readConfig(cfgFile)
+	readConfig(cfgFile)
 	assertNotEmpty("slsConfig.AccessKeyID", slsConfig.AccessKeyID)
 	assertNotEmpty("slsConfig.AccessKeySecret", slsConfig.AccessKeySecret)
 	assertNotEmpty("slsConfig.EndPoint", slsConfig.EndPoint)
