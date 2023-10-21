@@ -243,7 +243,7 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 		if _, ok := contents["lineNumber"]; !ok {
 			contents["lineNumber"] = lineNumber
 		}
-		fmt.Printf("print to %s, %s", l.projectName, l.logStoreName)
+		// fmt.Printf("print to %s, %s", l.projectName, l.logStoreName)
 		ip := ipAddr()
 		topic := ""
 		writeLogToSls(ip, topic, &logDto{
