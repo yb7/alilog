@@ -225,6 +225,12 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 			"level":   level,
 			"message": msg,
 		}
+		if slsConfig.Tags != nil {
+			for k, v := range slsConfig.Tags {
+				contents[k] = v
+			}
+		}
+
 		for k, v := range l.params {
 			contents[k] = v
 		}
@@ -237,6 +243,7 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 		if _, ok := contents["lineNumber"]; !ok {
 			contents["lineNumber"] = lineNumber
 		}
+		fmt.Printf("print to %s, %s", l.projectName, l.logStoreName)
 		ip := ipAddr()
 		topic := ""
 		writeLogToSls(ip, topic, &logDto{
