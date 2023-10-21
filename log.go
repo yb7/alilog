@@ -149,8 +149,11 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	if ShouldLog(level) == false {
 		return
 	}
+	msg := format
+	if len(v) > 0 {
+		msg = fmt.Sprintf(format, v...)
+	}
 
-	msg := fmt.Sprintf(format, v...)
 	params := make([]string, 0)
 
 	fileName, fileNameExisted := l.params["file"]
