@@ -19,8 +19,6 @@ func StartSlsLog() {
 	producerConfig.MaxBatchSize = 50 * 1024
 	// 当一个 ProducerBatch 中缓存的日志条数大于等于 batchCountThreshold 时，该 batch 将被发送，默认为 4096，这里设置成20条。
 	producerConfig.MaxBatchCount = 20
-	// 设置日志输出级别，默认值是Info,consumer中一共有4种日志输出级别，分别为debug,info,warn和error。
-	producerConfig.AllowLogLevel = "debug"
 
 	producerConfig.Endpoint = slsConfig.EndPoint
 	producerConfig.AccessKeyID = slsConfig.AccessKeyID
