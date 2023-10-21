@@ -5,18 +5,24 @@ import (
 	"os"
 )
 
-var defaultProjectName string
-var defaultLogStore string
+// var defaultProjectName string
+// var defaultLogStore string
 
-func init() {
-	defaultProjectName = os.Getenv("ALILOG_PROJECT_NAME")
-	defaultLogStore = os.Getenv("ALILOG_LOG_STORE")
-	if len(defaultProjectName) == 0 || len(defaultLogStore) == 0 {
-		fmt.Printf("ALILOG_PROJECT_NAME / ALILOG_LOG_STORE shouldn't be empty, when use default logger")
-	}
-}
+// func init() {
+// 	defaultProjectName = os.Getenv("ALILOG_PROJECT_NAME")
+// 	defaultLogStore = os.Getenv("ALILOG_LOG_STORE")
+// 	if len(defaultProjectName) == 0 || len(defaultLogStore) == 0 {
+// 		fmt.Printf("ALILOG_PROJECT_NAME / ALILOG_LOG_STORE shouldn't be empty, when use default logger")
+// 	}
+// }
 
 func defaultLogger() *SLog {
+	var defaultProjectName string
+	var defaultLogStore string
+	if slsConfig.IsValid() {
+		defaultLogStore = slsConfig.LogStore
+		defaultProjectName = slsConfig.ProjectName
+	}
 	return New(defaultProjectName, defaultLogStore)
 }
 func LogWith(k, v string) *SLog {

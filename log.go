@@ -220,7 +220,7 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	}
 	msgArr = append(msgArr, msg)
 	stdLog.Println(strings.Join(msgArr, " - "))
-	if len(strings.TrimSpace(os.Getenv("ALILOG_CONFIG"))) > 0 && len(l.projectName) > 0 && len(l.logStoreName) > 0 {
+	if producerInstance != nil && len(l.projectName) > 0 && len(l.logStoreName) > 0 {
 		contents := map[string]string{
 			"level":   level,
 			"message": msg,

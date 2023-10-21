@@ -5,61 +5,47 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
-var slsConfig = &SlsConfig{}
+var slsConfig *SlsConfig = nil
 
 type SlsConfig struct {
 	AccessKeyID     string
 	AccessKeySecret string
-	// Region          string
-	EndPoint string
+	EndPoint        string
+	ProjectName     string
+	LogStore        string
+	Tags            map[string]string
 }
 
-func readConfig(file string) *SlsConfig {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		panic(fmt.Errorf("error[%s] when read sls config file: %s", err.Error(), file))
-	}
-	// var slsConfig SlsConfig
-	err = json.Unmarshal(data, slsConfig)
-	if err != nil {
-		panic(fmt.Errorf("error[%s] when unmarshal sls config\n %s", err.Error(), string(data)))
-	}
-	stdInfo.Println("SLS CONFIG start")
-	stdInfo.Println(string(data))
-	stdInfo.Println("SLS CONFIG end")
-	return slsConfig
+func (s *SlsConfig) IsValid() bool {
+	notValid := slsConfig == nil || len(slsConfig.AccessKeyID) == 0 || len(slsConfig.AccessKeySecret) == 0 || len(slsConfig.EndPoint) == 0
+	return !notValid
 }
 
-func SetConfig(accessKey, accessSecret, endpoint string) {
-	slsConfig.AccessKeyID = accessKey
-	slsConfig.AccessKeySecret = accessSecret
-	slsConfig.EndPoint = endpoint
+func SetConfig(config *SlsConfig) {
+	if config == nil {
+		return
+	}
+	slsConfig = config
+
+	if len(slsConfig.ProjectName) == 0 && len(os.Getenv("ALILOG_PROJECT_NAME")) > 0 {
+		slsConfig.ProjectName = os.Getenv("ALILOG_PROJECT_NAME")
+	}
+	if len(slsConfig.LogStore) == 0 && len(os.Getenv("ALILOG_LOG_STORE")) > 0 {
+		slsConfig.LogStore = os.Getenv("ALILOG_LOG_STORE")
+	}
+	if len(slsConfig.Tags) == 0 && len(os.Getenv("ALILOG_TAGS")) > 0 {
+		tags := make(map[string]string)
+		toml.Unmarshal([]byte(os.Getenv("ALILOG_TAGS")), tags)
+		slsConfig.Tags = tags
+	}
 }
+
 func InitFromConfigFile(cfgFile string) {
-	//cfgFile := os.Getenv("ALILOG_CONFIG")
 	if len(cfgFile) == 0 {
-		/*
-		   accessKey := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_KEY"))
-		   if len(accessKey) == 0 {
-		     stdInfo.Println("missing ALILOG_ACCESS_KEY sls start up failed")
-		     return
-		   }
-		   accessSecret := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_SECRET"))
-		   if len(accessSecret) == 0 {
-		     stdInfo.Println("missing ALILOG_ACCESS_SECRET sls start up failed")
-		     return
-		   }
-		   accessEndPoint := strings.TrimSpace(os.Getenv("ALILOG_ACCESS_ENDPOINT"))
-		   if len(accessEndPoint) == 0 {
-		     stdInfo.Println("missing ALILOG_ACCESS_ENDPOINT sls start up failed")
-		     return
-		   }
-		   slsConfig.AccessKeyID = accessKey
-		   slsConfig.AccessKeySecret = accessSecret
-		   slsConfig.EndPoint = accessEndPoint
-		*/
 
 		stdInfo.Println("missing sls start up config file")
 		return
@@ -68,16 +54,19 @@ func InitFromConfigFile(cfgFile string) {
 	if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
 		panic(fmt.Sprintf("sls config file[%s], not exist", cfgFile))
 	}
-	readConfig(cfgFile)
-	assertNotEmpty("slsConfig.AccessKeyID", slsConfig.AccessKeyID)
-	assertNotEmpty("slsConfig.AccessKeySecret", slsConfig.AccessKeySecret)
-	assertNotEmpty("slsConfig.EndPoint", slsConfig.EndPoint)
-	// slsRegion := assertRegion(slsConfig.Region)
-
-	// slsClient = sls.NewClientWithEndpoint(slsConfig.EndPoint, slsRegion, false,
-	// 	slsConfig.AccessKeyID, slsConfig.AccessKeySecret)
-
-	// stdInfo.Println(fmt.Sprintf("success create sls client to %s[region:%s]", slsConfig.EndPoint, slsRegion))
+	data, err := os.ReadFile(cfgFile)
+	if err != nil {
+		panic(fmt.Errorf("error[%s] when read sls config file: %s", err.Error(), cfgFile))
+	}
+	var slsConfigFromFile = &SlsConfig{}
+	err = json.Unmarshal(data, slsConfigFromFile)
+	if err != nil {
+		panic(fmt.Errorf("error[%s] when unmarshal sls config\n %s", err.Error(), string(data)))
+	}
+	SetConfig(slsConfigFromFile)
+	// stdInfo.Println("SLS CONFIG start")
+	// stdInfo.Println(string(data))
+	// stdInfo.Println("SLS CONFIG end")
 }
 
 func assertNotEmpty(key, value string) {
@@ -85,43 +74,3 @@ func assertNotEmpty(key, value string) {
 		panic(fmt.Errorf("%s is empty", key))
 	}
 }
-
-// func assertRegion(slsRegion string) (reg common.Region) {
-// 	switch slsRegion {
-// 	case "cn-hangzhou":
-// 		reg = common.Hangzhou
-// 	case "cn-qingdao":
-// 		reg = common.Qingdao
-// 	case "cn-beijing":
-// 		reg = common.Beijing
-// 	case "cn-hongkong":
-// 		reg = common.Hongkong
-// 	case "cn-shenzhen":
-// 		reg = common.Shenzhen
-// 	case "cn-shanghai":
-// 		reg = common.Shanghai
-// 	case "cn-zhangjiakou":
-// 		reg = common.Zhangjiakou
-
-// 	case "ap-southeast-1":
-// 		reg = common.APSouthEast1
-// 	case "ap-northeast-1":
-// 		reg = common.APNorthEast1
-// 	case "ap-southeast-2":
-// 		reg = common.APSouthEast2
-
-// 	case "us-west-1":
-// 		reg = common.USWest1
-// 	case "us-east-1":
-// 		reg = common.USEast1
-
-// 	case "me-east-1":
-// 		reg = common.MEEast1
-
-// 	case "eu-central-1":
-// 		reg = common.EUCentral1
-// 	default:
-// 		panic(fmt.Errorf("not a valid aliyun region: [%s]", slsRegion))
-// 	}
-// 	return
-// }

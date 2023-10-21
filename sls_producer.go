@@ -7,7 +7,7 @@ import (
 var producerInstance *producer.Producer
 
 func StartSlsLog() {
-	if slsConfig == nil || len(slsConfig.AccessKeyID) == 0 {
+	if !slsConfig.IsValid() {
 		stdInfo.Println("sls config has not been inited")
 		return
 	}
