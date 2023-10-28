@@ -52,12 +52,12 @@ func (p *LogParams) getStrValue(k string) (string, bool) {
 	str, _ := v.(string)
 	return str, true
 }
-func (p *LogParams) appendTraceId(traceId string) {
-	p.TraceId = append(p.TraceId, traceId)
+func (p *LogParams) appendTraceId(traceId ...string) {
+	p.TraceId = append(p.TraceId, traceId...)
 }
 
 func WithContext(ctx context.Context) *SLog {
-	logParams, ok := ctx.Value("LOG_PARAMS").(*LogParams)
+	logParams, ok := getLogParamsFromContext(ctx)
 	log := defaultLogger()
 	if !ok {
 		return log
@@ -65,11 +65,18 @@ func WithContext(ctx context.Context) *SLog {
 	log.params = logParams
 	return log
 }
-func (l *SLog) WriteToContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, "LOG_PARAMS", l.params)
+func getLogParamsFromContext(ctx context.Context) (*LogParams, bool) {
+	logParams, ok := ctx.Value("LOG_PARAMS").(*LogParams)
+	return logParams, ok
 }
-func (l *SLog) WithTraceId(traceId string) *SLog {
-	l.params.appendTraceId(traceId)
+func writeToContext(ctx context.Context, p *LogParams) context.Context {
+	return context.WithValue(ctx, "LOG_PARAMS", p)
+}
+func (l *SLog) CreateLogContext(ctx context.Context) context.Context {
+	return writeToContext(ctx, l.params)
+}
+func (l *SLog) WithTraceId(traceId ...string) *SLog {
+	l.params.appendTraceId(traceId...)
 	return l
 }
 func (l *SLog) With(k string, v any) *SLog {

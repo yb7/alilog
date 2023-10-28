@@ -1,6 +1,7 @@
 package alilog
 
 import (
+	"context"
 	"fmt"
 	"os"
 )
@@ -24,6 +25,21 @@ func defaultLogger() *SLog {
 		defaultProjectName = slsConfig.ProjectName
 	}
 	return New(defaultProjectName, defaultLogStore)
+}
+
+func AppendTraceIdToContext(ctx context.Context, traceIds ...string) context.Context {
+	logParams, _ := getLogParamsFromContext(ctx)
+	if logParams == nil {
+		logParams = &LogParams{
+			TraceId: make([]string, 0),
+			Params:  make(map[string]any),
+		}
+	}
+	logParams.appendTraceId(traceIds...)
+	return writeToContext(ctx, logParams)
+}
+func WithTraceId(traceId ...string) *SLog {
+	return defaultLogger().WithTraceId(traceId...)
 }
 func LogWith(k, v string) *SLog {
 	return defaultLogger().With(k, v)
