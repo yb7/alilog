@@ -2,11 +2,13 @@ package alilog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 )
@@ -53,7 +55,8 @@ func (p *LogParams) getStrValue(k string) (string, bool) {
 	return str, true
 }
 func (p *LogParams) appendTraceId(traceId ...string) {
-	p.TraceId = append(p.TraceId, traceId...)
+	p.TraceId = slices.Compact(append(p.TraceId, traceId...))
+
 }
 
 func WithContext(ctx context.Context) *SLog {
@@ -194,10 +197,12 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	msgArr = append(msgArr, msg)
 	stdLog.Println(strings.Join(msgArr, " - "))
 	if producerInstance != nil && len(l.projectName) > 0 && len(l.logStoreName) > 0 {
+
 		contents := map[string]string{
 			"level":   level,
 			"message": msg,
 		}
+
 		topic := ""
 		if slsConfig.Tags != nil {
 			for k, v := range slsConfig.Tags {
@@ -209,13 +214,6 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 			}
 		}
 
-		for k, v := range l.params.getParams() {
-			strValue, err := ToStringE(v)
-			if err != nil {
-				contents[k] = strValue
-			}
-
-		}
 		if _, ok := contents["file"]; !ok {
 			contents["file"] = fileName
 		}
@@ -224,6 +222,19 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 		}
 		if _, ok := contents["lineNumber"]; !ok {
 			contents["lineNumber"] = lineNumber
+		}
+		if l.params != nil {
+			if len(l.params.TraceId) > 0 {
+				traceIdsBytes, _ := json.Marshal(l.params.TraceId)
+				contents["traceId"] = string(traceIdsBytes)
+			}
+
+			for k, v := range l.params.getParams() {
+				strValue, err := ToStringE(v)
+				if err != nil {
+					contents[k] = strValue
+				}
+			}
 		}
 		// fmt.Printf("print to %s, %s", l.projectName, l.logStoreName)
 		ip := ipAddr()
