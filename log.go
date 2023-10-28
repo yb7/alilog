@@ -1,6 +1,7 @@
 package alilog
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -14,91 +15,66 @@ type SLog struct {
 	projectName  string
 	logStoreName string
 	ip           string
-	//project      *sls.LogProject
-	//logStore     *sls.LogStore
-	params map[string]string
+	params       *LogParams
 }
 
-//func getLogStore(projectName, logStoreName string) *sls.LogStore {
-//	logKey := logStoreKey(projectName, logStoreName)
-//	data, ok := logCache.Load(logKey)
-//	if !ok {
-//		return nil
-//	}
-//	return data.(*slsLogData).logStore
-//}
-
-//type slsLogData struct {
-//	//once         *sync.Once
-//	project  *sls.LogProject
-//	logStore *sls.LogStore
-//}
-//
-//func logStoreKey(projectName, logStoreName string) string {
-//	return fmt.Sprintf("%s-%s", projectName, logStoreName)
-//}
-
-//var logCache sync.Map
-
-//var mutex = &sync.Mutex{}
-
-//func initSlsLogData(projectName, logStoreName string) {
-//	logKey := logStoreKey(projectName, logStoreName)
-//	//const MaxRetry = 5
-//	doOnce(logKey, func() error {
-//		logProject := &sls.LogProject{
-//			Name:            projectName,
-//			Endpoint:        slsConfig.EndPoint,
-//			AccessKeyID:     slsConfig.AccessKeyID,
-//			AccessKeySecret: slsConfig.AccessKeySecret,
-//		}
-//
-//		fmt.Printf("[SLS] create log store to: Project[%s], LogStore[%s], Endpoint[%s]\n", projectName, logStoreName, slsConfig.EndPoint)
-//
-//		//var retry_times int
-//		for retry_times := 0; retry_times < 5 && len(slsConfig.EndPoint) > 0; retry_times++ {
-//			logstore, err := logProject.GetLogStore(logStoreName)
-//			if err != nil {
-//				fmt.Printf("GetLogStore fail, retry:%d, err:%v\n", retry_times, err)
-//				if strings.Contains(err.Error(), sls.PROJECT_NOT_EXIST) {
-//					return err
-//				} else if strings.Contains(err.Error(), sls.LOGSTORE_NOT_EXIST) {
-//					err = logProject.CreateLogStore(logStoreName, 30, 2, true, 100)
-//					if err != nil {
-//						fmt.Printf("CreateLogStore fail, err: %s\n", err.Error())
-//					} else {
-//						fmt.Println("CreateLogStore success")
-//					}
-//				}
-//			} else {
-//				fmt.Printf("GetLogStore success, retry:%d, name: %s, ttl: %d, shardCount: %d, createTime: %d, lastModifyTime: %d\n",
-//					retry_times, logstore.Name, logstore.TTL, logstore.ShardCount, logstore.CreateTime, logstore.LastModifyTime)
-//				logCache.Store(logKey, &slsLogData{
-//					logProject, logstore,
-//				})
-//				return nil
-//			}
-//			time.Sleep(200 * time.Millisecond)
-//		}
-//		return errors.New("[SLS] exceed max retry, create log store failed")
-//		//slsLog.logStore = logstore
-//	})
-//}
-
 func New(projectName, logStoreName string) *SLog {
+	logParams := &LogParams{
+		TraceId: make([]string, 0),
+		Params:  make(map[string]any),
+	}
 	slsLog := &SLog{
 		projectName:  projectName,
 		logStoreName: logStoreName,
 		ip:           ipAddr(),
-		params:       make(map[string]string),
+		params:       logParams,
 	}
-	//go initSlsLogData(projectName, logStoreName)
-
 	return slsLog
 }
-func (l *SLog) With(k, v string) *SLog {
-	params := make(map[string]string)
-	for k, v := range l.params {
+
+type LogParams struct {
+	TraceId []string
+	Params  map[string]any
+}
+
+func (p *LogParams) getParams() map[string]any {
+	if p.Params == nil {
+		p.Params = make(map[string]any)
+	}
+	return p.Params
+}
+
+func (p *LogParams) getStrValue(k string) (string, bool) {
+	v, ok := p.getParams()[k]
+	if !ok {
+		return "", false
+	}
+	str, _ := v.(string)
+	return str, true
+}
+func (p *LogParams) appendTraceId(traceId string) {
+	p.TraceId = append(p.TraceId, traceId)
+}
+
+func WithContext(ctx context.Context) *SLog {
+	logParams, ok := ctx.Value("LOG_PARAMS").(*LogParams)
+	log := defaultLogger()
+	if !ok {
+		return log
+	}
+	log.params = logParams
+	return log
+}
+func (l *SLog) WriteToContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, "LOG_PARAMS", l.params)
+}
+func (l *SLog) WithTraceId(traceId string) *SLog {
+	l.params.appendTraceId(traceId)
+	return l
+}
+func (l *SLog) With(k string, v any) *SLog {
+	params := make(map[string]any)
+	for k, v := range l.params.getParams() {
 		params[k] = v
 	}
 	params[k] = v
@@ -108,7 +84,7 @@ func (l *SLog) With(k, v string) *SLog {
 		ip:           l.ip,
 		//project:      l.project,
 		//logStore:     l.logStore,
-		params: params,
+		params: &LogParams{Params: params},
 	}
 }
 func (l *SLog) Tracef(format string, v ...interface{}) {
@@ -156,8 +132,9 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 
 	params := make([]string, 0)
 
-	fileName, fileNameExisted := l.params["file"]
-	funcName, funcNameExisted := l.params["func"]
+	fileName, fileNameExisted := l.params.getStrValue("file")
+
+	funcName, funcNameExisted := l.params.getStrValue("func")
 
 	var lineNumber = ""
 
@@ -172,20 +149,6 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 					fileName = fmt.Sprintf("%s/%s", arr[len(arr)-2], fileName)
 				}
 			}
-			// if !funcNameExisted {
-			// 	funcName = runtime.FuncForPC(pc).Name()
-			// 	firstSlash := strings.LastIndex(funcName, "/")
-			// 	if firstSlash > -1 {
-			// 		funcName = funcName[firstSlash+1:]
-			// 	}
-			// 	if strings.Index(funcName, ".") > -1 {
-			// 		fileNameFirstPart := strings.Split(fileName, "/")[0]
-			// 		funcNameFirstPart := funcName[0:strings.Index(funcName, ".")]
-			// 		if fileNameFirstPart == funcNameFirstPart {
-			// 			funcName = funcName[strings.Index(funcName, ".")+1:]
-			// 		}
-			// 	}
-			// }
 			lineNumber = fmt.Sprintf(":%d", line)
 		}
 	}
@@ -194,7 +157,7 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 
 	fileParam := fmt.Sprintf("%s%s", fileName, lineNumber)
 
-	for k, v := range l.params {
+	for k, v := range l.params.getParams() {
 		if k != "file" && k != "func" && k != "line" {
 			params = append(params, fmt.Sprintf("%s[%s]", k, v))
 		}
@@ -239,8 +202,12 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 			}
 		}
 
-		for k, v := range l.params {
-			contents[k] = v
+		for k, v := range l.params.getParams() {
+			strValue, err := ToStringE(v)
+			if err != nil {
+				contents[k] = strValue
+			}
+
 		}
 		if _, ok := contents["file"]; !ok {
 			contents["file"] = fileName
