@@ -116,6 +116,21 @@ func (l *SLog) Errorf(format string, v ...interface{}) error {
 	l.doLog("error", format, v...)
 	return fmt.Errorf(format, v...)
 }
+
+type TestingT interface {
+	Errorf(format string, args ...interface{})
+}
+type testingTImpl struct {
+	l *SLog
+}
+
+func (t *testingTImpl) Errorf(format string, args ...interface{}) {
+	t.l.Errorf(format, args...)
+}
+
+func (l *SLog) ToTestifyTestingT() TestingT {
+	return &testingTImpl{l}
+}
 func (l *SLog) Error(err error) error {
 	if err != nil {
 		l.doLog("error", err.Error())

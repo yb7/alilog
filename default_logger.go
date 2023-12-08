@@ -63,6 +63,9 @@ func Errorf(format string, v ...interface{}) error {
 	defaultLogger().doLog("error", format, v...)
 	return fmt.Errorf(format, v...)
 }
+func ToTestifyTestingT() TestingT {
+	return &testingTImpl{l: defaultLogger()}
+}
 func Error(err error) error {
 	if err != nil {
 		defaultLogger().doLog("error", err.Error())
