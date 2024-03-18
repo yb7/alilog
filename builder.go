@@ -17,6 +17,7 @@ type SlsConfig struct {
 	EndPoint        string
 	ProjectName     string
 	LogStore        string
+	Topic           string
 	Tags            map[string]string
 }
 

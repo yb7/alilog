@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -214,8 +215,9 @@ func (l *SLog) doLog(level string, format string, v ...interface{}) {
 	if producerInstance != nil && len(l.projectName) > 0 && len(l.logStoreName) > 0 {
 
 		contents := map[string]string{
-			"level":   level,
-			"message": msg,
+			"level":       level,
+			"message":     msg,
+			"_logTimeMs_": strconv.Itoa(int(time.Now().UnixMilli())),
 		}
 
 		topic := ""
