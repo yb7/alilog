@@ -1,6 +1,6 @@
 module github.com/yb7/alilog
 
-go 1.21.3
+go 1.25.6
 
 require (
 	github.com/aliyun/aliyun-log-go-sdk v0.1.64
